@@ -77,11 +77,14 @@
         ============================================================
         PICKUP MODE TOGGLE ON ADDRESS STEP
         ============================================================
-        Inject a "Mode Pengiriman" toggle at the top of the address
-        form. When customer picks "Ambil di Tempat":
+        Inject a "Mode Pengiriman" toggle at the TOP of the address
+        form so the customer picks delivery vs pickup BEFORE filling
+        in any address field. When customer picks "Ambil di Tempat":
           * Hide all address-related fields (.div_street, .div_street2,
             .div_city, .div_zip, .div_country, .div_state_id, .div_vat,
             #div_email, "Kirim ke alamat yang sama" toggle, GPS button)
+          * Hide the "Isi alamat Anda atau Sign in" h3 heading
+            (no longer relevant in pickup mode)
           * Keep only name + phone visible (still required for the order)
           * Show store info banner (address + business hours)
           * Set hidden input pickup_at_store=1
@@ -91,44 +94,55 @@
 
         Controller override (controllers/main.py) reads pickup_at_store
         flag and sets order.carrier_id to the pickup carrier.
+
+        XPath note: position="before" on the FIRST <div class="row">
+        inside <form class="checkout_autoformat"> inserts the toggle
+        as the form's first child — i.e. above the name/email/phone
+        row. (position="inside" would have appended at the END of the
+        form, after all address fields — that was the previous bug.)
     -->
     <template id="checkout_pickup_mode_toggle" name="Pickup Mode Toggle on Address Step"
               inherit_id="website_sale.address">
-        <xpath expr="//form[hasclass('checkout_autoformat')]" position="inside">
+        <xpath expr="//form[hasclass('checkout_autoformat')]/div[hasclass('row')][1]" position="before">
             <t t-set="pickup_addr" t-value="env['ir.config_parameter'].sudo().get_param('website_sale_pickup_at_store.store_address', '') or ''"/>
             <t t-set="pickup_hrs" t-value="env['sale.order']._pickup_hours_display() if 'is_pickup_order' in env['sale.order']._fields else ''"/>
-            <!-- Hidden flag submitted with the form -->
-            <input type="hidden" name="pickup_at_store" id="pickup_at_store_input" value="0"/>
-            <!-- Mode toggle UI (placed first inside form so it appears above fields) -->
-            <div id="pickup_mode_selector" class="mb-3 col-lg-12"
-                 t-att-data-store-address="pickup_addr"
-                 t-att-data-store-hours="pickup_hrs">
-                <label class="form-label fw-bold">Mode Pengiriman</label>
-                <div class="btn-group w-100" role="group" id="pickup_mode_btn_group">
-                    <input type="radio" class="btn-check" name="pickup_mode_radio"
-                           id="pickup_mode_delivery" value="delivery"
-                           checked="checked" autocomplete="off"/>
-                    <label class="btn btn-outline-primary" for="pickup_mode_delivery">
-                        <i class="fa fa-truck me-1"></i> Pengiriman ke alamat
-                    </label>
-                    <input type="radio" class="btn-check" name="pickup_mode_radio"
-                           id="pickup_mode_pickup" value="pickup" autocomplete="off"/>
-                    <label class="btn btn-outline-primary" for="pickup_mode_pickup">
-                        <i class="fa fa-store me-1"></i> Ambil di Tempat
-                    </label>
-                </div>
-                <!-- Store info banner (hidden by default, shown when pickup selected) -->
-                <div id="pickup_store_banner" class="card mt-2 d-none"
-                     style="border-left: 4px solid #16a34a;">
-                    <div class="card-body">
-                        <h6 class="card-title mb-2">
-                            <i class="fa fa-store me-2"></i>Ambil di Tempat — Warung Lakku
-                        </h6>
-                        <p class="card-text small mb-1">
-                            <strong>Gratis ongkir</strong> — pesanan diambil langsung di toko.
-                        </p>
-                        <div class="small text-muted" id="pickup_store_address_text"></div>
-                        <div class="small text-muted" id="pickup_business_hours_text"></div>
+            <!-- Wrap toggle in its own row so it spans full width above the form fields -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <!-- Hidden flag submitted with the form -->
+                    <input type="hidden" name="pickup_at_store" id="pickup_at_store_input" value="0"/>
+                    <!-- Mode toggle UI (placed at top of form, above address fields) -->
+                    <div id="pickup_mode_selector" class="mb-3"
+                         t-att-data-store-address="pickup_addr"
+                         t-att-data-store-hours="pickup_hrs">
+                        <label class="form-label fw-bold">Mode Pengiriman</label>
+                        <div class="btn-group w-100" role="group" id="pickup_mode_btn_group">
+                            <input type="radio" class="btn-check" name="pickup_mode_radio"
+                                   id="pickup_mode_delivery" value="delivery"
+                                   checked="checked" autocomplete="off"/>
+                            <label class="btn btn-outline-primary" for="pickup_mode_delivery">
+                                <i class="fa fa-truck me-1"></i> Pengiriman ke alamat
+                            </label>
+                            <input type="radio" class="btn-check" name="pickup_mode_radio"
+                                   id="pickup_mode_pickup" value="pickup" autocomplete="off"/>
+                            <label class="btn btn-outline-primary" for="pickup_mode_pickup">
+                                <i class="fa fa-store me-1"></i> Ambil di Tempat
+                            </label>
+                        </div>
+                        <!-- Store info banner (hidden by default, shown when pickup selected) -->
+                        <div id="pickup_store_banner" class="card mt-2 d-none"
+                             style="border-left: 4px solid #16a34a;">
+                            <div class="card-body">
+                                <h6 class="card-title mb-2">
+                                    <i class="fa fa-store me-2"></i>Ambil di Tempat — Warung Lakku
+                                </h6>
+                                <p class="card-text small mb-1">
+                                    <strong>Gratis ongkir</strong> — pesanan diambil langsung di toko.
+                                </p>
+                                <div class="small text-muted" id="pickup_store_address_text"></div>
+                                <div class="small text-muted" id="pickup_business_hours_text"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -169,8 +183,17 @@
                                 useSameContainer.style.display = isPickup ? 'none' : '';
                             }
                         }
-                        // Also hide the GPS detect button (it's in #koordinat_input group)
-                        // Already covered by .div_street2 selector
+
+                        // Hide the page heading "Isi alamat Anda atau Sign in"
+                        // (or "Billing address" / "Shipping address") when pickup
+                        // is selected — it no longer makes sense.
+                        var oeCart = document.querySelector('.oe_cart');
+                        if (oeCart) {
+                            var headings = oeCart.querySelectorAll('h3.mb-3');
+                            headings.forEach(function (h) {
+                                h.style.display = isPickup ? 'none' : '';
+                            });
+                        }
 
                         // Show/hide store info banner
                         if (isPickup) {
