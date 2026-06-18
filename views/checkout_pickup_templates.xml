@@ -111,41 +111,79 @@
                 <div class="col-lg-12">
                     <!-- Hidden flag submitted with the form -->
                     <input type="hidden" name="pickup_at_store" id="pickup_at_store_input" value="0"/>
-                    <!-- Mode toggle UI (placed at top of form, above address fields) -->
-                    <div id="pickup_mode_selector" class="mb-3"
-                         t-att-data-store-address="pickup_addr"
-                         t-att-data-store-hours="pickup_hrs">
-                        <label class="form-label fw-bold">Mode Pengiriman</label>
-                        <div class="btn-group w-100" role="group" id="pickup_mode_btn_group">
-                            <input type="radio" class="btn-check" name="pickup_mode_radio"
-                                   id="pickup_mode_delivery" value="delivery"
-                                   checked="checked" autocomplete="off"/>
-                            <label class="btn btn-outline-primary" for="pickup_mode_delivery">
-                                <i class="fa fa-truck me-1"></i> Pengiriman ke alamat
-                            </label>
-                            <input type="radio" class="btn-check" name="pickup_mode_radio"
-                                   id="pickup_mode_pickup" value="pickup" autocomplete="off"/>
-                            <label class="btn btn-outline-primary" for="pickup_mode_pickup">
-                                <i class="fa fa-store me-1"></i> Ambil di Tempat
-                            </label>
-                        </div>
-                        <!-- Store info banner (hidden by default, shown when pickup selected) -->
-                        <div id="pickup_store_banner" class="card mt-2 d-none"
-                             style="border-left: 4px solid #16a34a;">
-                            <div class="card-body">
-                                <h6 class="card-title mb-2">
-                                    <i class="fa fa-store me-2"></i>Ambil di Tempat — Warung Lakku
-                                </h6>
-                                <p class="card-text small mb-1">
-                                    <strong>Gratis ongkir</strong> — pesanan diambil langsung di toko.
-                                </p>
-                                <div class="small text-muted" id="pickup_store_address_text"></div>
-                                <div class="small text-muted" id="pickup_business_hours_text"></div>
+                    <!-- P0 audit fix: wrap toggle in a styled card so it visually stands out
+                         as a section, not floating buttons. Background subtle gray, full
+                         border + accent left bar (primary color). -->
+                    <div class="card mb-3" id="pickup_mode_card"
+                         style="background: #fafafa; border: 1px solid #e5e7eb; border-left: 4px solid #714B67;">
+                        <div class="card-body py-3">
+                            <!-- Mode toggle UI (placed at top of form, above address fields) -->
+                            <div id="pickup_mode_selector"
+                                 t-att-data-store-address="pickup_addr"
+                                 t-att-data-store-hours="pickup_hrs">
+                                <label class="form-label fw-bold d-block mb-2">Mode Pengiriman</label>
+                                <!-- P0 audit fix: btn-group with gap + both buttons rounded
+                                     (instead of split radius) for clear visual separation. -->
+                                <div class="d-flex gap-2 w-100" role="group" id="pickup_mode_btn_group">
+                                    <input type="radio" class="btn-check" name="pickup_mode_radio"
+                                           id="pickup_mode_delivery" value="delivery"
+                                           checked="checked" autocomplete="off"/>
+                                    <label class="btn btn-outline-primary flex-grow-1 rounded-pill" for="pickup_mode_delivery">
+                                        <i class="fa fa-truck me-1"></i> Pengiriman ke alamat
+                                    </label>
+                                    <input type="radio" class="btn-check" name="pickup_mode_radio"
+                                           id="pickup_mode_pickup" value="pickup" autocomplete="off"/>
+                                    <label class="btn btn-outline-primary flex-grow-1 rounded-pill" for="pickup_mode_pickup">
+                                        <i class="fa fa-store me-1"></i> Ambil di Tempat
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Pilih bagaimana Anda ingin menerima pesanan.
+                                </small>
+                                <!-- Store info banner (hidden by default, shown when pickup selected).
+                                     P0 audit fix: full border + green left accent (was: only left border,
+                                     top/right/bottom were 0px none = looked floating). -->
+                                <div id="pickup_store_banner" class="card mt-3 d-none"
+                                     style="border: 1px solid #e5e7eb; border-left: 4px solid #16a34a;">
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-2" style="color: #16a34a;">
+                                            <i class="fa fa-store me-2"></i>Ambil di Tempat — Warung Lakku
+                                        </h6>
+                                        <p class="card-text small mb-1">
+                                            <strong>Gratis ongkir</strong> — pesanan diambil langsung di toko.
+                                        </p>
+                                        <div class="small text-muted" id="pickup_store_address_text"></div>
+                                        <div class="small text-muted" id="pickup_business_hours_text"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            <style>
+                /*<![CDATA[*/
+                /* P0 audit fix: bold + larger active button so user instantly sees
+                   which mode is selected (was: font-weight 400 same as inactive). */
+                #pickup_mode_btn_group .btn-check:checked + .btn {
+                    font-weight: 600 !important;
+                }
+                #pickup_mode_btn_group .btn {
+                    font-size: 0.95rem;
+                    padding: 0.55rem 1rem;
+                }
+                @media (max-width: 575.98px) {
+                    #pickup_mode_btn_group .btn {
+                        font-size: 0.85rem;
+                        padding: 0.5rem 0.6rem;
+                    }
+                    #pickup_mode_btn_group .btn i {
+                        display: block;
+                        margin: 0 0 2px 0 !important;
+                    }
+                }
+                /*]]>*/
+            </style>
             <script>
                 //<![CDATA[
                 (function () {
