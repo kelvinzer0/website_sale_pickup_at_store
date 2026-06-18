@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_pickup" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.pickup</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="website.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='website_info_settings']" position="after">
+                <block title="Pickup At Store" id="pickup_at_store_settings_block">
+                    <setting id="pickup_store_address_setting"
+                             string="Pickup Store Address"
+                             help="Alamat toko untuk pickup. Default = alamat company utama.">
+                        <field name="pickup_store_address" placeholder="Dusun Ngrekesan, Desa Ngadri, Blitar..."/>
+                    </setting>
+                    <setting id="pickup_business_hours_setting"
+                             string="Business Hours (from Evolution API)"
+                             help="Jam buka toko, di-fetch dari Evolution API (cache 24 jam).">
+                        <field name="pickup_business_hours_display" readonly="1"/>
+                        <button name="action_refresh_business_hours"
+                                type="object"
+                                string="Refresh"
+                                class="btn btn-sm btn-primary ms-2"/>
+                        <div class="text-muted small" invisible="not pickup_business_hours_fetched_at">
+                            Last fetched: <field name="pickup_business_hours_fetched_at" readonly="1"/>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

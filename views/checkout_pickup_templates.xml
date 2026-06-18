@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Inject pickup info banner into checkout payment step.
+
+        Two changes:
+        1. Inherit website_sale.payment_delivery_methods to add
+           data-is-pickup attribute to the carrier radio input so
+           client JS can detect when a pickup carrier is selected.
+        2. Inherit website_sale.payment_delivery to insert info banner
+           inside the #delivery_carrier div, after the #delivery_method
+           list. JS toggles its visibility based on radio selection.
+    -->
+    <template id="checkout_pickup_mark_carrier_radio" name="Pickup: mark carrier radio"
+              inherit_id="website_sale.payment_delivery_methods">
+        <xpath expr="//input[@name='delivery_type']" position="attributes">
+            <attribute name="t-att-data-is-pickup">delivery.is_pickup and '1' or '0'</attribute>
+        </xpath>
+    </template>
+
+    <template id="checkout_pickup_info_banner" name="Pickup At Store Info Banner"
+              inherit_id="website_sale.payment_delivery">
+        <xpath expr="//div[@id='delivery_method']" position="after">
+            <t t-set="pickup_addr" t-value="env['ir.config_parameter'].sudo().get_param('website_sale_pickup_at_store.store_address', '') or ''"/>
+            <t t-set="pickup_hrs" t-value="env['sale.order']._pickup_hours_display() if 'is_pickup_order' in env['sale.order']._fields else ''"/>
+            <div id="pickup_info_banner" class="card mt-3 d-none"
+                 style="border-left: 4px solid #16a34a;">
+                <div class="card-body">
+                    <h6 class="card-title mb-2">
+                        <i class="fa fa-store me-2"></i>Ambil di Tempat
+                    </h6>
+                    <p class="card-text small mb-2">
+                        <strong>Gratis ongkir</strong> — pesanan diambil langsung di toko.
+                    </p>
+                    <div class="small text-muted" id="pickup_store_address_block">
+                        <t t-if="pickup_addr">
+                            <i class="fa fa-map-marker me-1"></i><t t-out="pickup_addr"/>
+                        </t>
+                    </div>
+                    <div class="small text-muted mt-1" id="pickup_business_hours_block">
+                        <t t-if="pickup_hrs">
+                            <i class="fa fa-clock-o me-1"></i><t t-out="pickup_hrs"/>
+                        </t>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" id="pickup_addr_text" t-att-value="pickup_addr"/>
+            <input type="hidden" id="pickup_hrs_text" t-att-value="pickup_hrs"/>
+            <script>
+                //<![CDATA[
+                (function () {
+                    "use strict";
+                    function updatePickupBanner() {
+                        var selected = document.querySelector('input[name="delivery_type"]:checked');
+                        var banner = document.getElementById('pickup_info_banner');
+                        if (!banner) return;
+                        if (selected && selected.dataset && selected.dataset.isPickup === '1') {
+                            banner.classList.remove('d-none');
+                        } else {
+                            banner.classList.add('d-none');
+                        }
+                    }
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var radios = document.querySelectorAll('input[name="delivery_type"]');
+                        radios.forEach(function (r) {
+                            r.addEventListener('change', updatePickupBanner);
+                        });
+                        updatePickupBanner();
+                    });
+                })();
+                //]]>
+            </script>
+        </xpath>
+    </template>
+</odoo>

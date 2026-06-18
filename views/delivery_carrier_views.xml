@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add is_pickup field to delivery.carrier form -->
+    <record id="view_delivery_carrier_form_pickup" model="ir.ui.view">
+        <field name="name">delivery.carrier.form.pickup</field>
+        <field name="model">delivery.carrier</field>
+        <field name="inherit_id" ref="delivery.view_delivery_carrier_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='active']" position="after">
+                <field name="is_pickup"
+                       string="Pickup at Store"
+                       help="Aktifkan ini jika carrier adalah metode 'Ambil di Tempat'. Ongkir otomatis gratis."/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Add is_pickup to tree view too -->
+    <record id="view_delivery_carrier_tree_pickup" model="ir.ui.view">
+        <field name="name">delivery.carrier.tree.pickup</field>
+        <field name="model">delivery.carrier</field>
+        <field name="inherit_id" ref="delivery.view_delivery_carrier_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='delivery_type']" position="after">
+                <field name="is_pickup" string="Pickup" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
