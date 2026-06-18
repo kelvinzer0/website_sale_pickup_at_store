@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!--
-        Inject pickup info banner into checkout payment step.
+        Inject pickup info banner into PAYMENT step (existing behavior).
 
         Two changes:
         1. Inherit website_sale.payment_delivery_methods to add
@@ -67,6 +67,152 @@
                         });
                         updatePickupBanner();
                     });
+                })();
+                //]]>
+            </script>
+        </xpath>
+    </template>
+
+    <!--
+        ============================================================
+        PICKUP MODE TOGGLE ON ADDRESS STEP
+        ============================================================
+        Inject a "Mode Pengiriman" toggle at the top of the address
+        form. When customer picks "Ambil di Tempat":
+          * Hide all address-related fields (.div_street, .div_street2,
+            .div_city, .div_zip, .div_country, .div_state_id, .div_vat,
+            #div_email, "Kirim ke alamat yang sama" toggle, GPS button)
+          * Keep only name + phone visible (still required for the order)
+          * Show store info banner (address + business hours)
+          * Set hidden input pickup_at_store=1
+        When customer picks "Pengiriman ke alamat":
+          * Show all fields (default behavior)
+          * Set hidden input pickup_at_store=0
+
+        Controller override (controllers/main.py) reads pickup_at_store
+        flag and sets order.carrier_id to the pickup carrier.
+    -->
+    <template id="checkout_pickup_mode_toggle" name="Pickup Mode Toggle on Address Step"
+              inherit_id="website_sale.address">
+        <xpath expr="//form[hasclass('checkout_autoformat')]" position="inside">
+            <t t-set="pickup_addr" t-value="env['ir.config_parameter'].sudo().get_param('website_sale_pickup_at_store.store_address', '') or ''"/>
+            <t t-set="pickup_hrs" t-value="env['sale.order']._pickup_hours_display() if 'is_pickup_order' in env['sale.order']._fields else ''"/>
+            <!-- Hidden flag submitted with the form -->
+            <input type="hidden" name="pickup_at_store" id="pickup_at_store_input" value="0"/>
+            <!-- Mode toggle UI (placed first inside form so it appears above fields) -->
+            <div id="pickup_mode_selector" class="mb-3 col-lg-12"
+                 t-att-data-store-address="pickup_addr"
+                 t-att-data-store-hours="pickup_hrs">
+                <label class="form-label fw-bold">Mode Pengiriman</label>
+                <div class="btn-group w-100" role="group" id="pickup_mode_btn_group">
+                    <input type="radio" class="btn-check" name="pickup_mode_radio"
+                           id="pickup_mode_delivery" value="delivery"
+                           checked="checked" autocomplete="off"/>
+                    <label class="btn btn-outline-primary" for="pickup_mode_delivery">
+                        <i class="fa fa-truck me-1"></i> Pengiriman ke alamat
+                    </label>
+                    <input type="radio" class="btn-check" name="pickup_mode_radio"
+                           id="pickup_mode_pickup" value="pickup" autocomplete="off"/>
+                    <label class="btn btn-outline-primary" for="pickup_mode_pickup">
+                        <i class="fa fa-store me-1"></i> Ambil di Tempat
+                    </label>
+                </div>
+                <!-- Store info banner (hidden by default, shown when pickup selected) -->
+                <div id="pickup_store_banner" class="card mt-2 d-none"
+                     style="border-left: 4px solid #16a34a;">
+                    <div class="card-body">
+                        <h6 class="card-title mb-2">
+                            <i class="fa fa-store me-2"></i>Ambil di Tempat — Warung Lakku
+                        </h6>
+                        <p class="card-text small mb-1">
+                            <strong>Gratis ongkir</strong> — pesanan diambil langsung di toko.
+                        </p>
+                        <div class="small text-muted" id="pickup_store_address_text"></div>
+                        <div class="small text-muted" id="pickup_business_hours_text"></div>
+                    </div>
+                </div>
+            </div>
+            <script>
+                //<![CDATA[
+                (function () {
+                    "use strict";
+                    function updatePickupMode() {
+                        var pickupRadio = document.getElementById('pickup_mode_pickup');
+                        var form = document.querySelector('form.checkout_autoformat');
+                        var banner = document.getElementById('pickup_store_banner');
+                        var hiddenInput = document.getElementById('pickup_at_store_input');
+                        var selector = document.getElementById('pickup_mode_selector');
+                        if (!pickupRadio || !form || !banner || !hiddenInput || !selector) {
+                            return;
+                        }
+                        var isPickup = pickupRadio.checked;
+                        hiddenInput.value = isPickup ? '1' : '0';
+
+                        // Address-related field selectors to hide/show
+                        var addrSelectors = [
+                            '.div_street', '.div_street2', '.div_city', '.div_zip',
+                            '.div_country', '.div_state_id', '.div_vat',
+                            '.div_company_name', '#div_email'
+                        ];
+                        addrSelectors.forEach(function (sel) {
+                            var els = form.querySelectorAll(sel);
+                            els.forEach(function (el) {
+                                el.style.display = isPickup ? 'none' : '';
+                            });
+                        });
+
+                        // Also hide the "Kirim ke alamat yang sama" toggle in pickup mode
+                        var useSame = document.getElementById('shipping_use_same');
+                        if (useSame) {
+                            var useSameContainer = useSame.closest('.form-check');
+                            if (useSameContainer) {
+                                useSameContainer.style.display = isPickup ? 'none' : '';
+                            }
+                        }
+                        // Also hide the GPS detect button (it's in #koordinat_input group)
+                        // Already covered by .div_street2 selector
+
+                        // Show/hide store info banner
+                        if (isPickup) {
+                            banner.classList.remove('d-none');
+                            var addr = selector.dataset.storeAddress || '';
+                            var hrs = selector.dataset.storeHours || '';
+                            var addrEl = document.getElementById('pickup_store_address_text');
+                            var hrsEl = document.getElementById('pickup_business_hours_text');
+                            if (addrEl) {
+                                addrEl.innerHTML = addr
+                                    ? '<i class="fa fa-map-marker me-1"></i>' + addr
+                                    : '';
+                            }
+                            if (hrsEl) {
+                                hrsEl.innerHTML = hrs
+                                    ? '<i class="fa fa-clock-o me-1"></i>' + hrs
+                                    : '';
+                            }
+                        } else {
+                            banner.classList.add('d-none');
+                        }
+                    }
+
+                    function setupPickupMode() {
+                        var delivery = document.getElementById('pickup_mode_delivery');
+                        var pickup = document.getElementById('pickup_mode_pickup');
+                        if (delivery) {
+                            delivery.addEventListener('change', updatePickupMode);
+                        }
+                        if (pickup) {
+                            pickup.addEventListener('change', updatePickupMode);
+                        }
+                        updatePickupMode();
+                    }
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', setupPickupMode);
+                    } else {
+                        setupPickupMode();
+                    }
+                    // Re-run after a delay in case the customizer JS reorganizes the DOM
+                    setTimeout(setupPickupMode, 500);
                 })();
                 //]]>
             </script>

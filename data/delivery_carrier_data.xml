@@ -4,6 +4,11 @@
         Default pickup carrier "Ambil di Tempat - Warung Lakku"
         - delivery_type='fixed' (gratis, fixed_price=0)
         - is_pickup=True (flag untuk modul pickup)
+        - is_published=True + website_published=True (WAJIB supaya muncul
+          di website checkout - website.published.mixin meng-hide records
+          yang tidak published)
+        - country_ids dikosongkan (semua negara, konsisten dengan carrier
+          regular) supaya tidak difilter out saat customer belum set country
         - product = productDelivery product (delivery product standard Odoo)
     -->
     <record id="delivery_carrier_pickup_warung_lakku" model="delivery.carrier">
@@ -13,7 +18,10 @@
         <field name="fixed_price">0.0</field>
         <field name="is_pickup" eval="True"/>
         <field name="active" eval="True"/>
-        <!-- Country: Indonesia only (pickup is local) -->
-        <field name="country_ids" eval="[(6, 0, [ref('base.id')])]"/>
+        <field name="is_published" eval="True"/>
+        <field name="website_published" eval="True"/>
+        <field name="sequence" eval="5"/>
+        <!-- No country restriction: same as regular carrier, available for all countries -->
+        <field name="country_ids" eval="[(6, 0, [])]"/>
     </record>
 </odoo>

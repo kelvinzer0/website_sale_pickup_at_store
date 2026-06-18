@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Website Sale Pickup At Store',
-    'version': '17.0.1.0.0',
+    'version': '17.0.1.0.3',
     'category': 'Website/Website',
     'summary': 'Pickup at store option (Ambil di Tempat) for website checkout, free shipping, dynamic business hours from Evolution API',
     'description': """
